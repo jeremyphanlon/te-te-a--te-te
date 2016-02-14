@@ -1,0 +1,180 @@
+<html>
+	<head>
+		<script type="text/javascript">
+
+		function getNearbyUsers() {
+			var request = {
+				type: "get_nearby_users",
+				token: session.token
+			};
+
+			var xhttp = new XMLHttpRequest();
+			xhttp.onreadystatechange = function() {
+			  if (xhttp.readyState == 4 && xhttp.status == 200) {
+			    var response = JSON.parse(xhttp.responseText);
+
+			    if (response.success) {
+			    	document.getElementById("nearby_users").innerHTML = "";
+			    	var nearby_users = response.nearby_users;
+			    	for (var i = 0; i < nearby_users.length; i++) {
+			    		addNearbyUserToDOM(nearby_users[i]);
+			    	}
+			    	if (messages.length == 0) {
+			    		document.getElementById("nearby_users").innerHTML = "<p>No nearby users</p>";
+			    	}
+			    }
+			    else {
+			    	alert("Could not retrieve nearby users. Error: " + response.error);
+			    }
+			  }
+			};
+		    xhttp.open("POST", "", true);
+		    xhttp.send(JSON.stringify(request));
+		}
+
+		function handleGeolocation(position) {
+			var request = {
+				type: "geolocation",
+				token: session.token,
+				latitude: position.coords.latitude,
+				longitude: position.coords.longitude
+			};
+
+			var xhttp = new XMLHttpRequest();
+		    xhttp.open("POST", "", true);
+		    xhttp.send(JSON.stringify(request));
+		}
+
+		function startGeolocater() {
+			if (navigator.geolocation) {
+	        	navigator.geolocation.watchPosition(handleGeolocation);
+		    } else {
+		    	var errorMsg = "Geolocation is not supported by this browser.";
+		    	alert(errorMsg);
+		        console.err(errorMsg);
+		    }
+		}
+
+		var session = {
+			token: undefined,
+			address: undefined
+		}
+
+		function getSession() {
+
+			var request = {
+				type: "get_session"
+			};
+
+			var xhttp = new XMLHttpRequest();
+			xhttp.onreadystatechange = function() {
+			  if (xhttp.readyState == 4 && xhttp.status == 200) {
+			    var response = JSON.parse(xhttp.responseText);
+
+			    if (response.success) {
+			    	session.token = response.session_token;
+			    	session.address = response.session_address;
+			    	document.getElementById("session_address").innerHTML = session.address;
+			    	alert("Created session successfully.");
+			    	startGeolocater();
+			    }
+			    else {
+			    	alert("Could not create session.");
+			    }
+			  }
+			};
+		    xhttp.open("POST", "", true);
+		    xhttp.send(JSON.stringify(request));
+		}
+
+		function send() {
+			var to = document.getElementById("to").value;
+			var content = document.getElementById("content").value;
+
+			var request = {
+				type: "send",
+				to: to,
+				content: content
+			};
+
+			var xhttp = new XMLHttpRequest();
+			xhttp.onreadystatechange = function() {
+			  if (xhttp.readyState == 4 && xhttp.status == 200) {
+			    var response = JSON.parse(xhttp.responseText);
+
+			   	if (response.success) {
+			   		alert("Message sent successfully.");
+			   	}
+			   	else {
+			   		alert("Message failed to send. Error: " + response.error);
+			   	}
+			  }
+			};
+		    xhttp.open("POST", "", true);
+		    xhttp.send(JSON.stringify(request));
+		}
+
+		function addMessageToDOM(message) {
+			document.getElementById("messages").innerHTML += "\n<div style=\"border:1px dotted black;padding:2em;\">" + message + "</div>";
+		}
+
+		function addNearbyUserToDOM(nearby_user) {
+			document.getElementById("nearby_users").innerHTML += "\n<div style=\"border:1px dotted black;padding:2em;\">Address: " + nearby_user.address + " Distance: " + nearby_user.distance + " miles</div>";
+		}
+
+		function getMessages() {
+			var request = {
+				type: "get_messages",
+				token: session.token
+			};
+
+			var xhttp = new XMLHttpRequest();
+			xhttp.onreadystatechange = function() {
+			  if (xhttp.readyState == 4 && xhttp.status == 200) {
+			    var response = JSON.parse(xhttp.responseText);
+
+			    if (response.success) {
+			    	document.getElementById("messages").innerHTML = "";
+			    	var messages = response.messages;
+			    	for (var i = 0; i < messages.length; i++) {
+			    		addMessageToDOM(messages[i]);
+			    	}
+			    	if (messages.length == 0) {
+			    		document.getElementById("messages").innerHTML = "<p>No new messages</p>";
+			    	}
+			    }
+			    else {
+			    	alert("Could not retrieve messages. Error: " + response.error);
+			    }
+			  }
+			};
+		    xhttp.open("POST", "", true);
+		    xhttp.send(JSON.stringify(request));
+		}
+		</script>
+	</head>
+	<body>
+		<p><ul>Nearby Users</ul></p>
+		<input type="button" value="Refresh" onclick="getNearbyUsers()"/>
+		<div id="nearby_users">
+			<p>No nearby users</p>
+		</div>
+		<hr></hr>
+		<input type="button" value="Refresh" onclick="getMessages()"/>
+		<div id="messages">
+			<p>No new messages</p>
+		</div>
+		<hr></hr>
+		<div id="send">
+			<p>To: <input type="text" id="to"/></p>
+			<p>Message: </p>
+			<p><textarea id="content" rows="4" cols="50"></textarea></p>
+			<p><input type="button" value="Send" onclick="send()"/></p>
+		</div>
+		<hr></hr>
+		<div id="session">
+			<p><input type="button" value="Get Session" onclick="getSession()"/></p>
+			<p>Session address: <b><font face="Courier New" color="#AAAAAA" id="session_address">None</div></b></p>
+		</div>
+	</body>
+</html>
